@@ -21,6 +21,10 @@ import json
 import os
 import pickle
 import shutil
+import random
+import sys
+
+sys.path.append('../src')
 
 import numpy as np
 import torch
@@ -317,6 +321,89 @@ def main():
     distiller.train()
     logger.info("Let's go get some drinks.")
 
+def get_train_files(config):
+    # get data filepaths
+    corpus2train_filepaths = {}
+    corpus2dev_filepaths = {}
+    for corpus in config.corpora:
+        corpus2train_filepaths[corpus] = []
+        corpus2dev_filepaths[corpus] = []
+        if corpus == "jp_cc100":
+            from corpus.jp_cc100.config import Config
+            corpus_config = Config()
+
+            dev_file_idx = 42
+            
+            corpus_filepaths = sorted(list(filter(
+                lambda x: x.endswith(".txt"),
+                os.listdir(corpus_config.doc_data_dir)
+            )))
+            for file_idx, filepath in enumerate(corpus_filepaths):
+                if file_idx == dev_file_idx:
+                    corpus2dev_filepaths[corpus].append(f"{corpus_config.doc_data_dir}/{corpus_filepaths[file_idx]}")
+                else:
+                    corpus2train_filepaths[corpus].append(f"{corpus_config.doc_data_dir}/{corpus_filepaths[file_idx]}")
+
+        elif corpus == "jp_wiki":
+            from corpus.jp_wiki.config import Config
+            corpus_config = Config()
+
+            dev_file_idx = None  # we want to learn all Wikipedia docs
+            
+            corpus_filepaths = sorted(list(filter(
+                lambda x: x.endswith(".txt"),
+                os.listdir(corpus_config.doc_data_dir)
+            )))
+            for file_idx, filepath in enumerate(corpus_filepaths):
+                if file_idx == dev_file_idx:
+                    corpus2dev_filepaths[corpus].append(f"{corpus_config.doc_data_dir}/{corpus_filepaths[file_idx]}")
+                else:
+                    corpus2train_filepaths[corpus].append(f"{corpus_config.doc_data_dir}/{corpus_filepaths[file_idx]}")
+
+    # get filepaths for training data
+    train_filepaths = []
+    if config.balanced_corpora is None:
+        for filepaths in corpus2train_filepaths.values():
+            train_filepaths += filepaths
+        random.shuffle(train_filepaths)
+    elif config.balanced_corpora == "undersample":
+        min_n_files = min([len(filepaths) for filepaths in corpus2train_filepaths.values()])
+        for filepaths in corpus2train_filepaths.values():
+            train_filepaths += filepaths[:min_n_files]
+        random.shuffle(train_filepaths)
+    elif config.balanced_corpora == "oversample":
+        max_n_files = max([len(filepaths) for filepaths in corpus2train_filepaths.values()])
+        for filepaths in corpus2train_filepaths.values():
+            over_sample_times = math.ceil(max_n_files / len(filepaths))
+            oversampled_filepaths = []
+            for _ in range(over_sample_times):
+                oversampled_filepaths += filepaths
+            train_filepaths += oversampled_filepaths[:max_n_files]
+        random.shuffle(train_filepaths)
+    elif config.balanced_corpora == "custom_ratio":
+        corpus2ratio = {"jp_cc100": 1, "jp_wiki": 5}
+        custom_ratio_filepaths = []
+        for corpus, filepaths in corpus2train_filepaths.items():
+            ratio = corpus2ratio[corpus]
+            custom_ratio_filepaths += filepaths * ratio
+        train_filepaths = custom_ratio_filepaths
+        random.shuffle(train_filepaths)
+    else:
+        raise Exception(f"Unknown corpora balancing strategy: {config.balanced_corpora}")
+        
+    if config.small_data:
+        train_filepaths = train_filepaths[:2]
+    
+    return train_filepaths
+
+class Config(object):
+    pass
 
 if __name__ == "__main__":
-    main()
+    # main()
+    config = Config()
+    config.corpora = ['jp_cc100', 'jp_wiki']
+    config.balanced_corpora = None
+    config.small_data = False
+    files = get_train_files(config)
+    print(files)
