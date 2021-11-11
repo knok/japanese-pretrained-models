@@ -38,7 +38,7 @@ def collate_fn(batch_data):
     return batch_data
 
 class JpDistiller(Distiller):
-    def __init__(self, params: dict, dataset_files: List[str] , token_probs: torch.tensor, student: nn.Module, teacher: nn.Module):
+    def __init__(self, params: dict, dataset_files: List[str] , token_probs: torch.tensor, student: nn.Module, teacher: nn.Module, config):
         logger.info("Initializing Distiller")
         self.params = params
         self.dump_path = params.dump_path
@@ -50,6 +50,7 @@ class JpDistiller(Distiller):
 
         self.student_config = student.config
         self.vocab_size = student.config.vocab_size
+        self.config = config
 
         if params.n_gpu <= 1:
             sampler = RandomSampler
