@@ -22,6 +22,7 @@ import os
 import pickle
 import shutil
 import random
+import math
 import sys
 
 sys.path.append('../src')
@@ -46,7 +47,7 @@ from transformers import (
     RobertaTokenizer,
 )
 from utils import git_log, init_gpu_params, logger, set_seed
-
+from jp_distiller import JpDistiller
 
 MODEL_CLASSES = {
     "distilbert": (DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer),
@@ -399,11 +400,14 @@ def get_train_files(config):
 class Config(object):
     pass
 
-if __name__ == "__main__":
-    # main()
+def test_corpus():
     config = Config()
     config.corpora = ['jp_cc100', 'jp_wiki']
     config.balanced_corpora = None
     config.small_data = False
     files = get_train_files(config)
     print(files)
+
+if __name__ == "__main__":
+    # main()
+    test_corpus()
