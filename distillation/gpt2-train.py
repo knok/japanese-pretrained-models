@@ -260,26 +260,6 @@ def main():
     args.special_tok_ids = special_tok_ids
     args.max_model_input_size = tokenizer.max_model_input_sizes[args.teacher_name]
 
-    # DATA LOADER #
-    logger.info(f"Loading data from {args.data_file}")
-    with open(args.data_file, "rb") as fp:
-        data = pickle.load(fp)
-
-    if args.mlm:
-        logger.info(f"Loading token counts from {args.token_counts} (already pre-computed)")
-        with open(args.token_counts, "rb") as fp:
-            counts = pickle.load(fp)
-
-        token_probs = np.maximum(counts, 1) ** -args.mlm_smoothing
-        for idx in special_tok_ids.values():
-            token_probs[idx] = 0.0  # do not predict special tokens
-        token_probs = torch.from_numpy(token_probs)
-    else:
-        token_probs = None
-
-    train_lm_seq_dataset = LmSeqsDataset(params=args, data=data)
-    logger.info("Data loader created.")
-
     # STUDENT #
     logger.info(f"Loading student config from {args.student_config}")
     stu_architecture_config = student_config_class.from_pretrained(args.student_config)
@@ -311,13 +291,21 @@ def main():
     assert student.config.vocab_size == teacher.config.vocab_size
     assert student.config.hidden_size == teacher.config.hidden_size
     assert student.config.max_position_embeddings == teacher.config.max_position_embeddings
-    if args.mlm:
-        assert token_probs.size(0) == stu_architecture_config.vocab_size
+
+    # dataset
+    train_files = get_train_files()
+
+    # config
+    config = Config()
+    config.corpora = ['jp_cc100', 'jp_wiki']
+    config.balanced_corpora = None
+    config.small_data = False
 
     # DISTILLER #
     torch.cuda.empty_cache()
-    distiller = Distiller(
-        params=args, dataset=train_lm_seq_dataset, token_probs=token_probs, student=student, teacher=teacher
+    distiller = JpDistiller(
+        params=args, dataset_files=train_files, token_probs=None, student=student, teacher=teacher,
+        config=config
     )
     distiller.train()
     logger.info("Let's go get some drinks.")
@@ -409,5 +397,5 @@ def test_corpus():
     print(files)
 
 if __name__ == "__main__":
-    # main()
-    test_corpus()
+    main()
+    # test_corpus()
