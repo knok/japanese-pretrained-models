@@ -106,12 +106,12 @@ def main():
     parser.add_argument(
         "--dump_path", type=str, required=True, help="The output directory (log, checkpoints, parameters, etc.)"
     )
-    parser.add_argument(
-        "--data_file",
-        type=str,
-        required=True,
-        help="The binarized file (tokenized + tokens_to_ids) and grouped by sequence.",
-    )
+    # parser.add_argument(
+    #     "--data_file",
+    #     type=str,
+    #     required=True,
+    #     help="The binarized file (tokenized + tokens_to_ids) and grouped by sequence.",
+    # )
 
     parser.add_argument(
         "--student_type",
@@ -164,7 +164,7 @@ def main():
         type=float,
         help="Smoothing parameter to emphasize more rare tokens (see XLM, similar to word2vec).",
     )
-    parser.add_argument("--token_counts", type=str, help="The token counts in the data_file for MLM.")
+    # parser.add_argument("--token_counts", type=str, help="The token counts in the data_file for MLM.")
 
     parser.add_argument(
         "--restrict_ce_to_mask",
