@@ -42,6 +42,7 @@ from transformers import (
     GPT2Config,
     GPT2LMHeadModel,
     GPT2Tokenizer,
+    T5Tokenizer,
     RobertaConfig,
     RobertaForMaskedLM,
     RobertaTokenizer,
@@ -53,7 +54,7 @@ MODEL_CLASSES = {
     "distilbert": (DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer),
     "roberta": (RobertaConfig, RobertaForMaskedLM, RobertaTokenizer),
     "bert": (BertConfig, BertForMaskedLM, BertTokenizer),
-    "gpt2": (GPT2Config, GPT2LMHeadModel, GPT2Tokenizer),
+    "gpt2": (GPT2Config, GPT2LMHeadModel, T5Tokenizer),
 }
 
 
@@ -258,7 +259,7 @@ def main():
         special_tok_ids[tok_name] = tokenizer.all_special_ids[idx]
     logger.info(f"Special tokens {special_tok_ids}")
     args.special_tok_ids = special_tok_ids
-    args.max_model_input_size = tokenizer.max_model_input_sizes[args.teacher_name]
+    args.max_model_input_size = 512 # tokenizer.max_model_input_sizes[args.teacher_name]
 
     # STUDENT #
     logger.info(f"Loading student config from {args.student_config}")
@@ -292,20 +293,23 @@ def main():
     assert student.config.hidden_size == teacher.config.hidden_size
     assert student.config.max_position_embeddings == teacher.config.max_position_embeddings
 
-    # dataset
-    train_files = get_train_files()
-
     # config
     config = Config()
     config.corpora = ['jp_cc100', 'jp_wiki']
     config.balanced_corpora = None
     config.small_data = False
+    config.num_steps = 499838416 # `wc -l ../data/jp_*/doc_data/*.txt`
+    config.max_seq_len = 512 #
+    config.batch_size = args.batch_size
+
+    # dataset
+    train_files = get_train_files(config)
 
     # DISTILLER #
     torch.cuda.empty_cache()
     distiller = JpDistiller(
         params=args, dataset_files=train_files, token_probs=None, student=student, teacher=teacher,
-        config=config
+        config=config, tokenizer=tokenizer
     )
     distiller.train()
     logger.info("Let's go get some drinks.")
@@ -395,6 +399,10 @@ def test_corpus():
     config.small_data = False
     files = get_train_files(config)
     print(files)
+    tokenizer = T5Tokenizer.from_pretrained('rinna/japanese-gpt2-medium')
+    from task.pretrain_gpt2.train import load_docs_from_filepath
+    docs = load_docs_from_filepath(files[0],tokenizer)
+    docs
 
 if __name__ == "__main__":
     main()
