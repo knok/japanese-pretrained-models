@@ -416,6 +416,7 @@ class JpDistiller(Distiller):
                         token_ids, attn_mask, lm_labels = self.prepare_batch_mlm(batch=batch)
                     else:
                         token_ids, attn_mask, lm_labels = self.prepare_batch_clm(batch=batch)
+                    lm_labels = lm_labels.to(torch.int64) # 常にint64
                     self.step(input_ids=token_ids, attention_mask=attn_mask, lm_labels=lm_labels)
 
                     iter_bar.update()
