@@ -401,7 +401,7 @@ class JpDistiller(Distiller):
                 train_docs = load_data(self.dataset_files[train_file_idx],
                 tokenizer=self.tokenizer)
                 train_data_source = JpLmSeqsDataset(self.config, self.tokenizer, train_docs, "train", randomize=True, params=self.params)
-                train_data_sampler = self.sampler(train_data_source, replacement=False)
+                train_data_sampler = self.sampler(train_data_source) # , replacement=False)
                 train_data_loader = DataLoader(train_data_source, batch_size=self.config.batch_size,
                 sampler=train_data_sampler, num_workers=0,
                 collate_fn=train_data_source.batch_sequences, pin_memory=True)
