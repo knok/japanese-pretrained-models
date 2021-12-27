@@ -254,8 +254,9 @@ class JpDistiller(Distiller):
 
         if params.group_by_size:
             # ignore
-            groups = create_lengths_groups(lengths=dataset.lengths, k=params.max_model_input_size)
-            sampler = GroupedBatchSampler(sampler=sampler, group_ids=groups, batch_size=params.batch_size)
+            # groups = create_lengths_groups(lengths=dataset.lengths, k=params.max_model_input_size)
+            # sampler = GroupedBatchSampler(sampler=sampler, group_ids=groups, batch_size=params.batch_size)
+            sampler = BatchSampler
         else:
             sampler = BatchSampler
         self.batch_sampler = sampler
